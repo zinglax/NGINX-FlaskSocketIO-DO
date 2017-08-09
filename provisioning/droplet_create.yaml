@@ -1,0 +1,96 @@
+---
+- hosts: local
+
+  tasks:
+
+  - name: Include vars of secrets.yml into the 'digitalocean' variable.
+    include_vars:
+      file: ./group_vars/secrets.yml
+      name: digitalocean
+  
+
+  - name: Copy Private SSH key to local directory.
+    copy:
+      content: "{{ digitalocean.do_ssh_key_rsa }}"
+      dest: "{{ digitalocean.do_ssh_key_file }}"
+
+
+  - name: Copy Public SSH key to local directory.
+    copy:
+      content: "{{ digitalocean.do_ssh_key_pub }}"
+      dest: "{{ digitalocean.do_ssh_key_pub_file }}"
+
+
+  - name: Add SSH key.
+    environment: 
+      ssh_key_fingerprint: "{{ digitalocean.do_ssh_key_fingerprint }}"
+      ssh_key_name: "{{ digitalocean.do_ssh_key_name }}"
+      ssh_key_pub: "{{ digitalocean.do_ssh_key_pub_file }}"
+    script: ./files/add_ssh_key_to_do.sh
+    register: add_ssh_key_to_do
+  - debug: msg="{{ add_ssh_key_to_do.stdout }}"
+
+
+  - name: Create Droplet if it does not exists already.
+    environment:
+      droplet_name: "{{ digitalocean.do_droplet_name }}"
+      droplet_size: "{{ digitalocean.do_droplet_size }}"
+      droplet_region: "{{ digitalocean.do_droplet_region }}"
+      droplet_image: "{{ digitalocean.do_droplet_image }}"
+      ssh_key_fingerprint: "{{ digitalocean.do_ssh_key_fingerprint }}"      
+    script: ./files/create_droplet.sh
+    register: create_droplet
+  - debug: msg="{{ create_droplet.stdout }}"
+
+
+  - name: Wait for Droplet to load
+    pause:
+      minutes: 1
+
+
+  - name: Get Droplet IP.
+    shell: doctl compute droplet list | awk '$2 == "{{ digitalocean.do_droplet_name }}" { print $0 }' | awk '{ print $3 }'
+    register: droplet_ip
+
+
+  - set_fact:
+     new_droplet_ip: "{{ droplet_ip.stdout }}"
+
+  - debug: msg="{{ new_droplet_ip }}"
+
+
+  - name: Add Droplet IP to hosts file
+    shell: |
+      echo [zinglax] > ./inventory/zinglax
+      echo {{ droplet_ip.stdout }} >> ./inventory/zinglax
+
+
+  - name: Get Droplet ID.
+    shell: doctl compute droplet list | awk '$2 == "{{ digitalocean.do_droplet_name }}" { print $0 }' | awk '{ print $1 }'
+    register: droplet_id
+
+
+  - name: Add Domain
+    environment:
+      domain: "{{ digitalocean.do_domain_name }}"    
+      ip: "{{ droplet_ip.stdout }}"
+    script: ./files/add_domain.sh
+    register: rm_d
+  - debug: msg="{{ rm_d.stdout }}"
+
+
+  - name: Configure A Record "*.{{ digitalocean.do_domain_name }}"
+    shell: |
+      out=`doctl compute domain records list "{{ digitalocean.do_domain_name }}" | awk '$3 == "*" { print $2 }'`
+      if [ "$out" == "A" ]
+      then
+        echo There is already a wild card A record set to \*."{{ digitalocean.do_domain_name }}"
+      else
+        doctl compute domain records create "{{ digitalocean.do_domain_name }}" --record-type A --record-name "*" --record-data "{{ droplet_ip.stdout }}"
+      fi   
+    args:
+      executable: /bin/bash
+    register: record
+  - debug: msg="{{ record.stdout }}"
+
+
