@@ -1,0 +1,186 @@
+---
+- hosts: zinglax
+  remote_user: root
+  become: true
+
+  vars_files:
+  - ./group_vars/secrets.yml  
+
+  vars:
+    domain_root: zinglax.com
+
+  tasks: 
+
+  # - name: a2dissite {{ domain_root }} (specifically if it already exists)
+  #   command: a2dissite {{ domain_root }}
+  #   ignore_errors: yes
+  #   notify:
+  #     - restart apache2
+
+  # - name: enabled mod_rewrite
+  #   apache2_module: name=rewrite state=present
+
+
+  # - name: enabled mod_wsgi
+  #   apache2_module: name=wsgi state=present
+
+
+  # - name: enabled ssl
+  #   apache2_module: name=ssl state=present
+
+
+  # - name: Remove "{{ domain_root }}.conf" from /etc/apache2/sites-available
+  #   file:
+  #     path: "/etc/apache2/sites-available/{{ domain_root }}.conf"
+  #     state: absent
+
+
+  # - name: Template "stor.guru.conf" to /etc/apache2/sites-available
+  #   template:
+  #     src: "../source/site/stor.guru.conf"
+  #     dest: "/etc/apache2/sites-available/{{ domain_root }}.conf"
+
+
+
+  - name: Ensures /ENVS dir exists
+    file: path="/ENVS" group=www-data state=directory
+
+
+  # - name: Ensures /CERTS dir exists
+  #   file: path="/CERTS" group=www-data state=directory
+
+
+  # - name: Ansible copy CERTS from a directory to remote server
+  #   copy:
+  #     src: "../../../../source/{{ domain_root }}"
+  #     dest: "/var/www/"
+  #     mode: 0640
+  #     group: www-data
+  #     force: yes
+
+
+  # - name: Ansible copy files from a directory to remote server
+  #   copy:
+  #     src: "../source/{{ domain_root }}"
+  #     dest: "/var/www/"
+  #     mode: 0640
+  #     group: www-data
+  #     force: yes
+
+
+  - name: Ansible copy files from a directory to remote server
+    synchronize:
+      src: "../source/site"
+      dest: "/var/www/"
+      archive: no
+      recursive: yes
+
+
+  - name: Template "application.wsgi" to /var/www/site/application.wsgi
+    template:
+      src: "../source/site/application.wsgi"
+      dest: "/var/www/site/application.wsgi"
+
+
+  - name: Template "config.py" to /var/www/site/config.py
+    template:
+      src: "../source/site/config.py"
+      dest: "/var/www/site/config.py"
+
+
+  - name: Remove existing "/var/www/{{ domain_root }}" if exists.
+    file:
+      path: "/var/www/{{ domain_root }}"
+      state: absent
+      # ignore_errors: yes
+
+
+  - name: Move site folder to bar "{{ domain_root }}"
+    command: "mv /var/www/site /var/www/{{ domain_root }}"
+
+
+  - name: Install requirements into virtualenv
+    pip: 
+      requirements: "/var/www/{{ domain_root }}/requirements.txt"
+      virtualenv: "/ENVS/{{ domain_root }}"
+      virtualenv_python: python3.5
+
+
+  - name: chmod virtual envrionment
+    file: 
+      path: "/ENVS/{{ domain_root }}"
+      state: directory
+      recurse: yes
+      group: www-data
+
+
+  - name: 
+    shell: |
+      chown -R www-data:www-data /ENVS
+      chmod -R 777 /ENVS
+
+      chown -R www-data:www-data /var/www/"{{ domain_root }}"
+      chmod -R 777 /var/www/"{{ domain_root }}"
+
+
+  # - name: Activates the default virtualhost for letsencrypt
+  #   command: a2ensite 000-default
+
+
+  # - name: Activates the default ssl virtualhost for letsencrypt
+  #   command: a2ensite default-ssl
+  #   notify: 
+  #     - restart apache2
+
+
+
+
+  # - name: create letsencrypt directory
+  #   file: name=/var/www/letsencrypt state=directory
+
+  
+  # - name: Create letsencrypt certificate
+  #   shell: letsencrypt certonly -n --webroot -w /var/www/letsencrypt -m dylanzingler@gmail.com --agree-tos -d stor.guru
+  #   args:
+  #     creates: /etc/letsencrypt/live/stor.guru
+
+  # - name: Create letsencrypt certificate
+  #   shell: letsencrypt certonly --email dylanzingler@gmail.com --agree-tos -d stor.guru -n --apache
+  #   args:
+  #     creates: /etc/letsencrypt/live/stor.guru
+
+
+
+
+
+  # - name: Deactivates the default virtualhost
+  #   command: a2dissite 000-default
+
+
+  # - name: Deactivates the default ssl virtualhost
+  #   command: a2dissite default-ssl
+  #   notify: 
+  #     - restart apache2
+
+
+
+
+  # - name: a2ensite {{ domain_root }}
+  #   command: a2ensite {{ domain_root }}
+  #   args:
+  #     creates: /etc/apache2/sites-enabled/{{ domain_root }}.conf
+  #   notify:
+  #     - restart apache2
+
+
+
+
+
+  # - name: Create letsencrypt certificate
+  #   shell: |
+  #     letsencrypt -n --agree-tos --email dylanzingler@gmail.com --apache -d "{{ do_domain_name }}"
+
+
+  handlers:
+    - name: restart nginx
+      service: name=nginx state=restarted

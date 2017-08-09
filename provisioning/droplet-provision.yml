@@ -1,0 +1,162 @@
+---
+- hosts: zinglax
+  remote_user: root
+
+  vars_files:
+  - ./group_vars/secrets.yml
+
+  become: true
+  become_user: root
+  gather_facts: false
+
+
+  pre_tasks:
+
+  - name: Install python2 for Ansible
+    raw: bash -c "test -e /usr/bin/python || (apt -qqy update && apt install -qqy python-minimal)"
+    register: output
+    changed_when: output.stdout != ""
+
+    
+  - name: Gathering Facts
+    setup:
+
+
+  - name: whoami
+    shell: whoami
+    register: whoami
+  - debug: msg="{{ whoami.stdout }}"
+
+
+  - name: create a new user
+    user: name="{{ nonroot_user }}"
+        state=present
+        groups="sudo, admin"
+        password="{{ nonroot_password }}"
+        comment="{{ nonroot_comment }}"
+
+
+  tasks: 
+
+  - name: whoami
+    shell: whoami
+    register: whoami
+    become: true
+    become_user: "{{ nonroot_user }}"
+
+  - debug: msg="{{ whoami.stdout }}"
+
+
+
+  # - name: install the mongodb apt-key
+  #   shell: sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 0C49F3730359A14518585931BC711F9BA15703C6
+  #   args:
+  #     chdir: "/home/{{ nonroot_user }}"
+  #     creates: ansible/mongodb_apt_key
+    
+
+  # - name: add mongodb to the sources list
+  #   shell: echo "deb [ arch=amd64,arm64 ] http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.4.list
+  #   args:
+  #     chdir: /home/{{ nonroot_user }}
+  #     creates: ansible/mongodb_sources_list
+      
+
+  - name: update apt cache same as apt-get update
+    apt: update_cache=yes
+
+
+  - name: Update all packages to the latest version
+    apt:
+      upgrade: dist
+
+  
+  - name: restart server
+    become: yes
+    shell: sleep 2 && /sbin/shutdown -r now "Ubuntu system package upgraded"
+    async: 1
+    poll: 0
+
+
+  - name: waiting 30 secs for server to come back
+    become: false
+    local_action: 
+      wait_for host={{ ansible_default_ipv4.address }} 
+      port=22 
+      state=started 
+      delay=30 
+      timeout=120
+
+
+  # - name: install mongodb
+  #   apt: name=mongodb-org state=latest
+    
+
+  # - name: copy mongodb.service file to /etc/systemd/system/ directory
+  #   copy: src=./files/mongodb.service dest=/etc/systemd/system/mongodb.service mode=0755
+    
+
+  # - name: start the mongodb service
+  #   shell: systemctl start mongodb
+    
+
+  # - name: enable the mongodb service
+  #   shell: systemctl enable mongodb
+  
+
+  - apt_repository:
+    repo: 'ppa:nginx/stable'
+
+  - apt_repository:
+    repo: 'ppa:certbot/certbot'
+
+
+  - name: install nginx
+    apt: name=nginx state=latest
+
+
+  - name: install python-certbot-nginx
+    apt: name=python-certbot-nginx state=latest
+
+
+  - name: install git
+    apt: name=git state=latest
+
+
+  - name: install vim
+    apt: name=vim state=latest
+    
+
+  - name: install tree
+    apt: name=tree state=latest
+    
+
+  # - name: install mod_wsgi py3
+  #   apt: name=libapache2-mod-wsgi-py3 state=latest
+    
+
+  - name: install pip3
+    apt: name=python3-pip state=latest
+    
+
+  - name: install python3-dev
+    apt: name=python3-dev state=latest
+    
+
+  - name: install libffi-dev
+    apt: name=libffi-dev state=latest
+
+
+  # - name: install letsencrypt
+  #   apt: name=letsencrypt state=latest  
+
+
+  # - name: install python-letsencrypt-apache
+  #   apt: name=python-letsencrypt-apache state=latest  
+
+
+  - name: install virtualenv
+    apt: name=virtualenv state=latest
+
+
+# sudo certbot --nginx -d zinglax.com
