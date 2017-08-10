@@ -10,12 +10,12 @@ from flask_socketio import emit
 io_library = """
 <script type='text/javascript' src='//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js'></script>
 <script
-  src="http://code.jquery.com/jquery-3.2.1.min.js"
+  src="https://code.jquery.com/jquery-3.2.1.min.js"
   integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
   crossorigin="anonymous"></script>
   
 <script type='text/javascript' charset='utf-8'>
-    var socket = io.connect('http://' + '192.168.1.27' + ':' + '5000');
+    var socket = io.connect('https://' + "zinglax.com");
         
     socket.on('connect', function() {
         socket.emit('my event', {data: 'Im connected!'});

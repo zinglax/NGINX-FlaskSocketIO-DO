@@ -11,64 +11,24 @@
 
   tasks: 
 
-  # - name: a2dissite {{ domain_root }} (specifically if it already exists)
-  #   command: a2dissite {{ domain_root }}
-  #   ignore_errors: yes
-  #   notify:
-  #     - restart apache2
 
-  # - name: enabled mod_rewrite
-  #   apache2_module: name=rewrite state=present
+  - name: Remove "{{ domain_root }}.conf" from /etc/nginx/sites-available
+    file:
+      path: "/etc/nginx/sites-available/{{ domain_root }}.conf"
+      state: absent
 
 
-  # - name: enabled mod_wsgi
-  #   apache2_module: name=wsgi state=present
-
-
-  # - name: enabled ssl
-  #   apache2_module: name=ssl state=present
-
-
-  # - name: Remove "{{ domain_root }}.conf" from /etc/apache2/sites-available
-  #   file:
-  #     path: "/etc/apache2/sites-available/{{ domain_root }}.conf"
-  #     state: absent
-
-
-  # - name: Template "stor.guru.conf" to /etc/apache2/sites-available
-  #   template:
-  #     src: "../source/site/stor.guru.conf"
-  #     dest: "/etc/apache2/sites-available/{{ domain_root }}.conf"
-
+  - name: Template "{{ domain_root }}.conf" to /etc/nginx/sites-available
+    template:
+      src: "../source/site/zinglax.com.conf"
+      dest: "/etc/nginx/sites-available/{{ domain_root }}.conf"
 
 
   - name: Ensures /ENVS dir exists
     file: path="/ENVS" group=www-data state=directory
 
 
-  # - name: Ensures /CERTS dir exists
-  #   file: path="/CERTS" group=www-data state=directory
-
-
-  # - name: Ansible copy CERTS from a directory to remote server
-  #   copy:
-  #     src: "../../../../source/{{ domain_root }}"
-  #     dest: "/var/www/"
-  #     mode: 0640
-  #     group: www-data
-  #     force: yes
-
-
-  # - name: Ansible copy files from a directory to remote server
-  #   copy:
-  #     src: "../source/{{ domain_root }}"
-  #     dest: "/var/www/"
-  #     mode: 0640
-  #     group: www-data
-  #     force: yes
-
-
-  - name: Ansible copy files from a directory to remote server
+  - name: Copy files from a directory to remote server
     synchronize:
       src: "../source/site"
       dest: "/var/www/"
@@ -76,10 +36,10 @@
       recursive: yes
 
 
-  - name: Template "application.wsgi" to /var/www/site/application.wsgi
-    template:
-      src: "../source/site/application.wsgi"
-      dest: "/var/www/site/application.wsgi"
+  # - name: Template "application.wsgi" to /var/www/site/application.wsgi
+  #   template:
+  #     src: "../source/site/application.wsgi"
+  #     dest: "/var/www/site/application.wsgi"
 
 
   - name: Template "config.py" to /var/www/site/config.py
@@ -123,62 +83,14 @@
       chmod -R 777 /var/www/"{{ domain_root }}"
 
 
-  # - name: Activates the default virtualhost for letsencrypt
-  #   command: a2ensite 000-default
+  - name: Symlink "{{ domain_root }}.conf" to sites enabled.
+    shell: |
+      ln -sf "/etc/nginx/sites-available/{{ domain_root }}.conf" "/etc/nginx/sites-enabled/{{ domain_root }}.conf"
 
 
-  # - name: Activates the default ssl virtualhost for letsencrypt
-  #   command: a2ensite default-ssl
-  #   notify: 
-  #     - restart apache2
-
-
-
-
-  # - name: create letsencrypt directory
-  #   file: name=/var/www/letsencrypt state=directory
-
-  
-  # - name: Create letsencrypt certificate
-  #   shell: letsencrypt certonly -n --webroot -w /var/www/letsencrypt -m dylanzingler@gmail.com --agree-tos -d stor.guru
-  #   args:
-  #     creates: /etc/letsencrypt/live/stor.guru
-
-  # - name: Create letsencrypt certificate
-  #   shell: letsencrypt certonly --email dylanzingler@gmail.com --agree-tos -d stor.guru -n --apache
-  #   args:
-  #     creates: /etc/letsencrypt/live/stor.guru
-
-
-
-
-
-  # - name: Deactivates the default virtualhost
-  #   command: a2dissite 000-default
-
-
-  # - name: Deactivates the default ssl virtualhost
-  #   command: a2dissite default-ssl
-  #   notify: 
-  #     - restart apache2
-
-
-
-
-  # - name: a2ensite {{ domain_root }}
-  #   command: a2ensite {{ domain_root }}
-  #   args:
-  #     creates: /etc/apache2/sites-enabled/{{ domain_root }}.conf
-  #   notify:
-  #     - restart apache2
-
-
-
-
-
-  # - name: Create letsencrypt certificate
-  #   shell: |
-  #     letsencrypt -n --agree-tos --email dylanzingler@gmail.com --apache -d "{{ do_domain_name }}"
+  - name: Create letsencrypt certificate
+    shell: |
+      certbot -n --agree-tos --redirect --email dylanzingler@gmail.com --nginx -d "{{ do_domain_name }}"
 
 
   handlers:

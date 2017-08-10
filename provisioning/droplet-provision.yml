@@ -104,11 +104,11 @@
   #   shell: systemctl enable mongodb
   
 
-  - apt_repository:
-    repo: 'ppa:nginx/stable'
+  # - apt_repository:
+  #     repo: 'ppa:nginx/stable'
 
   - apt_repository:
-    repo: 'ppa:certbot/certbot'
+      repo: 'ppa:certbot/certbot'
 
 
   - name: install nginx

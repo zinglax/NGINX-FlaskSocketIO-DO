@@ -2,9 +2,9 @@ import os
 
 # PATH VARIABLES
 CURR_DIR = os.getcwd()
-PROD_DIR = "/var/www/zinglax"
-APP_NAME = "zinglax"
-VENV_NAME = "zinglax"
+PROD_DIR = "/var/www/{{ domain_root }}"
+APP_NAME = "{{ domain_root }}"
+VENV_NAME = "{{ domain_root }}"
 APP_DIR = os.path.join(PROD_DIR, "app")
 STATIC_DIR = os.path.join(APP_DIR, "static")
 

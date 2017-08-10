@@ -3,7 +3,7 @@ from app import socketio
 from app import app
 
 # Configuration
-HOST = '0.0.0.0'
+HOST = '127.0.0.1'
 PORT = 5000
 
 # Run the app
