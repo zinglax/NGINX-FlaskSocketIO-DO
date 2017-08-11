@@ -74,7 +74,7 @@
       group: www-data
 
 
-  - name: 
+  - name: Change permissions for deployment directory.
     shell: |
       chown -R www-data:www-data /ENVS
       chmod -R 777 /ENVS
@@ -91,6 +91,19 @@
   - name: Create letsencrypt certificate
     shell: |
       certbot -n --agree-tos --redirect --email dylanzingler@gmail.com --nginx -d "{{ do_domain_name }}"
+
+
+  - name: Template flask.service to "/etc/systemd/system/{{ domain_root }}.service"
+    template:
+      src: "../source/site/flask.service"
+      dest: "/etc/systemd/system/{{ domain_root }}.service"
+
+
+  - name: Start Flask Service
+    systemd:
+      name: "{{ domain_root }}.service"
+      state: started
+      enabled: yes
 
 
   handlers:

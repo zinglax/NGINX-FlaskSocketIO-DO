@@ -1,0 +1,10 @@
+[Unit]
+Description={{ domain_root }} Flask Service
+After=multi-user.target
+
+[Service]
+Type=idle
+ExecStart=/ENVS/{{ domain_root }}/bin/python /var/www/{{ domain_root }}/run.py
+
+[Install]
+WantedBy=multi-user.target
