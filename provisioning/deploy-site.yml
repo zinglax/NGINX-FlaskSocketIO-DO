@@ -11,6 +11,11 @@
 
   tasks: 
 
+  - name: Remove "{{ domain_root }}.conf" symlink from /etc/nginx/sites-enabled
+    file:
+      path: "/etc/nginx/sites-enabled/{{ domain_root }}.conf"
+      state: absent
+      
 
   - name: Remove "{{ domain_root }}.conf" from /etc/nginx/sites-available
     file:
